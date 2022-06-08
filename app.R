@@ -25,29 +25,42 @@ build_url <- function(url_args){
 ui <- fluidPage(
     useShinyjs(),
     
+    
+    
     div(
         id = "inputs",
         style="padding:30px;text-align: center !important;",
 
         # Application title
-        titlePanel("Thanks for clicking"),
+        titlePanel("MyDECIDE feedback"),
         
         #put some inputs here
-        checkboxGroupInput(
+        radioButtons(
             "feedback",
-            "Wy did you click on this link?",
-            choiceNames = c("It was interesting",
-                            "It was engaging",
-                            "The other links were rubbish",
-                            "I'm not sure"),
-            choiceValues = 1:4,
-            width = "100%"),
+            "What did you think of that MyDECIDE email?",
+            choiceNames = c("Very bad",
+                            "Bad",
+                            "Neutral",
+                            "Good",
+                            "Very good"),
+            selected = character(0),
+            choiceValues = 1:5,
+            width = "100%",
+            inline = TRUE),
+        
+        
+        #submit and go to tool
+        actionButton("submit_res", "Submit feedback and go to DECIDE tool",class = "btn-primary",style="background-color: #F08444;border-color: #F08444;"),
+        br(),
+        br(),
         
         #submit button
-        actionButton("submit_res", "Submit response",class = "btn-primary"),
+        actionButton("submit_res_quit", "Submit feedback and close webpage",class = "btn-primary",style="background-color: #F08444;border-color: #F08444;"),
+        br(),
+        br(),
         
         #skit button
-        a("Skip",
+        a("Skip feedback and go to DECIDE tool",
           id="skipbutton",
           class="btn btn-default",
           type="button"),
@@ -66,6 +79,9 @@ ui <- fluidPage(
 
 # Define server logic
 server <- function(input, output,session) {
+    
+    shinyjs::disable("submit_res")
+    shinyjs::disable("submit_res_quit")
     
     #reactive expression for the forwarding address based on the url parameters
     fwd_address <- reactive({
@@ -116,6 +132,15 @@ server <- function(input, output,session) {
         }
         
     })
+    
+    
+    observeEvent(input$feedback,{
+        shinyjs::enable("submit_res")
+        shinyjs::enable("submit_res_quit")
+        
+        
+        
+    })
 
     #clicking on the submit button saves data then goes to onward link
     observeEvent(input$submit_res, {
@@ -134,6 +159,18 @@ server <- function(input, output,session) {
                 'window.location.href ="',
                 fwd_address(),
                 '";'
+            )
+        )
+    })
+    
+    
+    observeEvent(input$submit_res_quit, {
+        #save it somewhere
+        #write.table / log etc.
+        
+        runjs(
+            paste0(
+                'window.close();'
             )
         )
     })
