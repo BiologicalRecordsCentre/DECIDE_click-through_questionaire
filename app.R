@@ -29,7 +29,7 @@ ui <- fluidPage(
     
     div(
         id = "inputs",
-        style="padding:30px;text-align: center !important;",
+        style="padding:30px;",
 
         # Application title
         titlePanel("MyDECIDE feedback"),
@@ -37,16 +37,32 @@ ui <- fluidPage(
         #put some inputs here
         radioButtons(
             "feedback",
-            "What did you think of that MyDECIDE email?",
-            choiceNames = c("Very bad",
-                            "Bad",
+            "Did you like this MyDECIDE email?",
+            choiceNames = c("Strongly disagree",
+                            "Disagree",
                             "Neutral",
-                            "Good",
-                            "Very good"),
+                            "Agree",
+                            "Strongly agree"),
             selected = character(0),
             choiceValues = 1:5,
             width = "100%",
-            inline = TRUE),
+            inline = T),
+        
+        #put some inputs here
+        radioButtons(
+            "feedback2",
+            "Is this MyDECIDE email likely to influence your recording behaviour?",
+            choiceNames = c("Strongly disagree",
+                            "Disagree",
+                            "Neutral",
+                            "Agree",
+                            "Strongly agree"),
+            selected = character(0),
+            choiceValues = 1:5,
+            width = "100%",
+            inline = T),
+        
+        textInput("feedback3", "In one or two sentences provide any other feedback (optional)", value = "", width = "500", placeholder = NULL),
         
         
         #submit and go to tool
@@ -133,25 +149,33 @@ server <- function(input, output,session) {
         
     })
     
+    #enabel submit buttons if feedback has been provided
+    observeEvent(input$feedback2,{
+        if (!is.null(input$feedback)){
+            shinyjs::enable("submit_res")
+            shinyjs::enable("submit_res_quit")
+        }
+    })
     
     observeEvent(input$feedback,{
-        shinyjs::enable("submit_res")
-        shinyjs::enable("submit_res_quit")
-        
-        
-        
+        if (!is.null(input$feedback2)){
+            shinyjs::enable("submit_res")
+            shinyjs::enable("submit_res_quit")
+        }
     })
 
+    save_feedback <- function(){
+        feedback_data <- parseQueryString(session$clientData$url_search)
+        feedback_data$input1 <- input$feedback
+        feedback_data$input2 <- input$feedback2
+        feedback_data$input3 <- input$feedback3
+        saveRDS(feedback_data,file = paste0("data/feedback_",format(Sys.time(), "%Y-%m-%d_%H-%M-%S"),".RDS"))
+    }
+    
     #clicking on the submit button saves data then goes to onward link
     observeEvent(input$submit_res, {
         #submit their responses to a database (or csv/log etc.)
-        
-        #get the information from the app
-        query <- parseQueryString(session$clientData$url_search)
-        res <- input$feedback
-        
-        #save it somewhere
-        #write.table / log etc.
+        save_feedback()
         
         #take user to the onwards page
         runjs(
@@ -165,12 +189,12 @@ server <- function(input, output,session) {
     
     
     observeEvent(input$submit_res_quit, {
-        #save it somewhere
-        #write.table / log etc.
-        
+        #submit their responses to a database (or csv/log etc.)
+        save_feedback()
+ 
         runjs(
             paste0(
-                'window.close();'
+                'window.close();history.back();'
             )
         )
     })
